@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "fork": {
+    "repository": "https://github.com/Edemilorhea/OpenAgentsControl.git",
+    "branch": "tc-custom",
+    "baseRevision": "37ca233fa5597a5abb90cba73165deafffe0344f"
+  },
+  "upstream": {
+    "repository": "https://github.com/darrenhinde/OpenAgentsControl.git",
+    "comparisonBaseline": "ef3836efd659e451b6dbb8eee7d3213ba39f5aec"
+  },
+  "policy": {
+    "deployment": "allowlist-only",
+    "updatePolicy": "manual-review",
+    "allowInstallerOverwrite": false
+  },
+  "assets": {
+    "agents": [
+      {
+        "id": "OpenAgent",
+        "mode": "primary",
+        "path": ".opencode/agent/core/openagent.md"
+      },
+      {
+        "id": "OpenCoder",
+        "mode": "primary",
+        "path": ".opencode/agent/core/opencoder.md"
+      },
+      {
+        "id": "TestEngineer",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/code/test-engineer.md"
+      },
+      {
+        "id": "CodeReviewer",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/code/reviewer.md"
+      },
+      {
+        "id": "CoderAgent",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/code/coder-agent.md"
+      },
+      {
+        "id": "BuildAgent",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/code/build-agent.md"
+      },
+      {
+        "id": "DocWriter",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/core/documentation.md"
+      },
+      {
+        "id": "ContextScout",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/core/contextscout.md"
+      },
+      {
+        "id": "ExternalScout",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/core/externalscout.md"
+      },
+      {
+        "id": "TaskManager",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/core/task-manager.md"
+      },
+      {
+        "id": "ContextOrganizer",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/system-builder/context-organizer.md"
+      },
+      {
+        "id": "OpenFrontendSpecialist",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/development/frontend-specialist.md"
+      },
+      {
+        "id": "OpenDevopsSpecialist",
+        "mode": "subagent",
+        "path": ".opencode/agent/subagents/development/devops-specialist.md"
+      }
+    ],
+    "commands": [
+      {
+        "id": "context",
+        "path": ".opencode/command/context.md"
+      },
+      {
+        "id": "add-context",
+        "path": ".opencode/command/add-context.md"
+      }
+    ],
+    "skills": []
+  },
+  "pendingReview": [
+    {
+      "id": "check-context-deps",
+      "classification": "command",
+      "path": ".opencode/command/openagents/check-context-deps.md",
+      "status": "not-imported",
+      "reason": "Routing behavior differs, but the same file also contains machine-specific path drift."
+    }
+  ]
+}

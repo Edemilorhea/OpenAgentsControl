@@ -1,9 +1,6 @@
 ---
-description: Context system manager - harvest summaries, extract knowledge, organize context
-tags:
-  - context
-  - knowledge-management
-  - harvest
+description: Manage project or global context with explicit storage boundaries
+tags: [context, knowledge-management]
 dependencies:
   - subagent:context-organizer
   - subagent:contextscout
@@ -11,299 +8,133 @@ dependencies:
 
 # Context Manager
 
-<critical_rules priority="absolute" enforcement="strict">
-  <rule id="mvi_strict">
-    Files MUST be <200 lines. Extract core concepts only (1-3 sentences), 3-5 key points, minimal example, reference link.
-  </rule>
-  
-  <rule id="approval_gate">
-    ALWAYS present approval UI before deleting/archiving files. Letter-based selection (A B C or 'all'). NEVER auto-delete.
-  </rule>
-  
-  <rule id="function_structure">
-    ALWAYS organize by function: concepts/, examples/, guides/, lookup/, errors/ (not flat files).
-  </rule>
-  
-  <rule id="lazy_load">
-    ALWAYS read required context files from .opencode/context/core/context-system/ BEFORE executing operations.
-  </rule>
-</critical_rules>
+## Root Resolution
 
-<execution_priority>
-  <tier level="1" desc="Safety & MVI">
-    - Files <200 lines (@critical_rules.mvi_strict)
-    - Show approval before cleanup (@critical_rules.approval_gate)
-    - Function-based structure (@critical_rules.function_structure)
-    - Load context before operations (@critical_rules.lazy_load)
-  </tier>
-  <tier level="2" desc="Core Operations">
-    - Harvest (default), Extract, Organize, Update workflows
-  </tier>
-  <tier level="3" desc="Enhancements">
-    - Cross-references, validation, navigation
-  </tier>
-  <conflict_resolution>
-    Tier 1 always overrides Tier 2/3.
-  </conflict_resolution>
-</execution_priority>
+Resolve the roots once before every operation. Keep them separate:
 
-**Arguments**: `$ARGUMENTS`
+1. `{local_root}` = `{project_root}/.opencode/context/` when running in a repository.
+2. `{global_root}` = `C:/Users/tc_tseng/.config/opencode/context/`.
+3. `{core_root}` = `{local_root}/core/` only when `{local_root}/core/navigation.md` exists; otherwise use `{global_root}/core/` when `{global_root}/core/navigation.md` exists.
+4. `{target_root}` = `{global_root}` with `--global`; otherwise `{local_root}` when running in a repository.
 
----
+The absence of `{local_root}/core/` is valid for a global OAC installation. Never resolve all context to one root: core standards may come from global while project intelligence comes from local.
 
-## Default Behavior (No Arguments)
+Outside a repository without `--global`, do not write and do not guess a project root. Ask the user to select a project directory or rerun with `--global`.
 
-When invoked without arguments: `/context`
+Project context contains architecture, patterns, decisions, and project-specific errors. It should be committed with the project. Global context contains reusable personal standards and defaults. A project context overrides global context.
 
-<workflow id="default_scan_harvest">
-  <stage id="1" name="QuickScan">
-    Scan workspace for summary files:
-    - *OVERVIEW.md, *SUMMARY.md, SESSION-*.md, CONTEXT-*.md
-    - Files in .tmp/ directory
-    - Files >2KB in root directory
-  </stage>
-  
-  <stage id="2" name="Report">
-    Show what was found:
-    ```
-    Quick scan results:
-    
-    Found 3 summary files:
-      📄 CONTEXT-SYSTEM-OVERVIEW.md (4.2 KB)
-      📄 SESSION-auth-work.md (1.8 KB)
-      📄 .tmp/NOTES.md (800 bytes)
-    
-    Recommended action:
-      /context harvest  - Clean up summaries → permanent context
-    
-    Other options:
-      /context extract {source}  - Extract from docs/code
-      /context organize {category}  - Restructure existing files
-      /context help  - Show all operations
-    ```
-  </stage>
-</workflow>
+Do not write project knowledge into `{core_root}`. Core is read-only operating guidance; generated project knowledge belongs under `{target_root}`.
 
-**Purpose**: Quick tidy-up. Default assumes you want to harvest summaries and compact workspace.
+## Safety Rules
 
----
+- Keep generated context files below 200 lines and organize them by function.
+- Preview writes and require approval before replacing, archiving, or deleting files.
+- Load the required operation guide before delegating or writing.
+- For validation failures, stop, report the failure, and request approval before attempting a repair.
 
 ## Operations
 
-### Primary: Harvest & Compact (Default Focus)
+### `/context`
 
-**`/context harvest [path]`** ⭐ Most Common
-- Extract knowledge from AI summaries → permanent context
-- Clean workspace (archive/delete summaries)
-- **Reads**: `operations/harvest.md` + `standards/mvi.md`
+Scan the current workspace for summaries and suggest the appropriate operation. This is read-only.
 
-**`/context compact {file}`**
-- Minimize verbose file to MVI format
-- **Reads**: `guides/compact.md` + `standards/mvi.md`
+### `/context harvest [path]`
 
----
+Extract durable project knowledge from summaries or `.tmp/` files. Write it to the resolved target root. Show files proposed for cleanup and require approval before cleanup.
 
-### Secondary: Custom Context Creation
+### `/context compact {file}`
 
-**`/context extract from {source}`**
-- Extract context from docs/code/URLs
-- **Reads**: `operations/extract.md` + `standards/mvi.md` + `guides/compact.md`
+Minimize an existing context file to MVI format under `{target_root}` without changing its meaning.
 
-**`/context organize {category}`**
-- Restructure flat files → function-based folders
-- **Reads**: `operations/organize.md` + `standards/structure.md`
+### `/context extract from {source}`
 
-**`/context update for {topic}`**
-- Update context when APIs/frameworks change
-- **Reads**: `operations/update.md` + `guides/workflows.md`
+Extract useful knowledge from documentation, code, or a URL into the resolved target root.
 
-**`/context error for {error}`**
-- Add recurring error to knowledge base
-- **Reads**: `operations/error.md` + `standards/templates.md`
+### `/context organize {category}`
 
-**`/context create {category}`**
-- Create new context category with structure
-- **Reads**: `guides/creation.md` + `standards/structure.md` + `standards/templates.md`
+Restructure a category under the resolved target root into `concepts/`, `examples/`, `guides/`, `lookup/`, and `errors/` as appropriate.
 
----
+### `/context update for {topic}`
 
-### Migration
+Update context in the resolved target root when an API, dependency, or project pattern changes.
 
-**`/context migrate`**
-- Copy project-intelligence from global (`~/.config/opencode/context/`) to local (`.opencode/context/`)
-- For users who installed globally but want project-specific, git-committed context
-- Shows diff if local files already exist, asks before overwriting
-- Optionally cleans up global project-intelligence after migration
-- **Reads**: `standards/mvi.md`
+### `/context error for {error}`
 
----
+Record a recurring, verified error and its resolution in the resolved target root.
 
-### Utility Operations
+### `/context create {category}`
 
-**`/context map [category]`**
-- View current context structure, file counts
+Create a context category in the resolved target root after showing the intended files.
 
-**`/context validate`**
-- Check integrity, references, file sizes
+### `/context map [category]` and `/context validate`
 
-**`/context help`**
-- Show all operations with examples
+Read-only operations. Inspect `{target_root}`. Load governing standards from `{core_root}`, but do not require `{target_root}/core/` to exist.
 
----
+For `validate`:
 
-## Lazy Loading Strategy
+- Validate files and navigation links that actually exist under `{target_root}`.
+- A project with only `project-intelligence/` is valid; start from its category navigation when no root `navigation.md` exists.
+- Report a missing `{core_root}` separately as an installation problem. Never report missing `{target_root}/core/context-system/` when global core fallback resolved successfully.
 
-<lazy_load_map>
-  <operation name="default">
-    Read: operations/harvest.md, standards/mvi.md
-  </operation>
-  
-  <operation name="harvest">
-    Read: operations/harvest.md, standards/mvi.md, guides/workflows.md
-  </operation>
-  
-  <operation name="compact">
-    Read: guides/compact.md, standards/mvi.md
-  </operation>
-  
-  <operation name="extract">
-    Read: operations/extract.md, standards/mvi.md, guides/compact.md, guides/workflows.md
-  </operation>
-  
-  <operation name="organize">
-    Read: operations/organize.md, standards/structure.md, guides/workflows.md
-  </operation>
-  
-  <operation name="update">
-    Read: operations/update.md, guides/workflows.md, standards/mvi.md
-  </operation>
-  
-  <operation name="error">
-    Read: operations/error.md, standards/templates.md, guides/workflows.md
-  </operation>
-  
-  <operation name="create">
-    Read: guides/creation.md, standards/structure.md, standards/templates.md
-  </operation>
-  
-  <operation name="migrate">
-    Read: standards/mvi.md
-  </operation>
-</lazy_load_map>
+### `/context migrate`
 
-**All files located in**: `.opencode/context/core/context-system/`
+Move only `project-intelligence/` from:
 
----
-
-## Subagent Routing
-
-<subagent_routing>
-  <!-- Delegate operations to specialized subagents -->
-  <route operations="harvest|extract|organize|update|error|create|migrate" to="ContextOrganizer">
-    Pass: operation name, arguments, lazy load map
-    Subagent loads: Required context files from .opencode/context/core/context-system/
-    Subagent executes: Multi-stage workflow per operation
-  </route>
-  
-  <route operations="map|validate" to="ContextScout">
-    Pass: operation name, arguments
-    Subagent executes: Read-only analysis and reporting
-  </route>
-</subagent_routing>
-
----
-
-## Quick Reference
-
-### Structure
-```
-.opencode/context/core/context-system/
-├── operations/     # How to do things (harvest, extract, organize, update)
-├── standards/      # What to follow (mvi, structure, templates)
-└── guides/         # Step-by-step (workflows, compact, creation)
+```text
+C:/Users/tc_tseng/.config/opencode/context/project-intelligence/
 ```
 
-### MVI Principle (Quick)
-- Core concept: 1-3 sentences
-- Key points: 3-5 bullets
-- Minimal example: <10 lines
-- Reference link: to full docs
-- File size: <200 lines
+to:
 
-### Function-Based Structure (Quick)
-```
-{category}/
-├── navigation.md       # Navigation
-├── concepts/       # What it is
-├── examples/       # Working code
-├── guides/         # How to
-├── lookup/         # Quick reference
-└── errors/         # Common issues
+```text
+{project_root}/.opencode/context/project-intelligence/
 ```
 
----
+Require a repository. Preview differences, request approval before overwriting local files, and request separate approval before removing the global source.
+
+## Delegation
+
+- `harvest`, `compact`, `extract`, `organize`, `update`, `error`, `create`, and `migrate` → ContextOrganizer.
+- `map` and `validate` → ContextScout.
+
+Pass the operation, `{project_root}`, `{local_root}`, `{global_root}`, `{core_root}`, `{target_root}`, and safety rules to the subagent. Resolved roots are authoritative: the subagent must not recompute them or infer a global write target from a global installation.
+
+## Lazy Loading
+
+Load operation guides relative to `{core_root}/context-system/`:
+
+| Operation | Required guides |
+|---|---|
+| `harvest` | `operations/harvest.md`, `standards/mvi.md`, `guides/workflows.md` |
+| `compact` | `guides/compact.md`, `standards/mvi.md` |
+| `extract` | `operations/extract.md`, `standards/mvi.md`, `guides/compact.md`, `guides/workflows.md` |
+| `organize` | `operations/organize.md`, `standards/structure.md`, `guides/workflows.md` |
+| `update` | `operations/update.md`, `guides/workflows.md`, `standards/mvi.md` |
+| `error` | `operations/error.md`, `standards/templates.md`, `guides/workflows.md` |
+| `create` | `guides/creation.md`, `standards/structure.md`, `standards/templates.md` |
+| `migrate` | `standards/mvi.md` |
 
 ## Examples
 
-### Default (Quick Scan)
-```bash
-/context
-# Scans workspace, suggests harvest if summaries found
-```
-
-### Harvest Summaries
 ```bash
 /context harvest
-/context harvest .tmp/
-/context harvest OVERVIEW.md
-```
+# In a repository: writes to {project_root}/.opencode/context/
 
-### Extract from Docs
-```bash
-/context extract from docs/api.md
-/context extract from https://react.dev/hooks
-```
+/context extract from docs/auth.md
+# In a repository: writes to {project_root}/.opencode/context/
 
-### Organize Existing
-```bash
-/context organize development/
-/context organize development/ --dry-run
-```
+/context harvest --global
+# Writes to C:/Users/tc_tseng/.config/opencode/context/
 
-### Update for Changes
-```bash
-/context update for Next.js 15
-/context update for React 19 breaking changes
-```
-
-### Migrate Global to Local
-```bash
 /context migrate
-# Copies project-intelligence from ~/.config/opencode/context/ to .opencode/context/
-# Shows what will be copied, asks for approval before proceeding
+# Copies global project-intelligence to the current project's .opencode/context/
 ```
-
----
 
 ## Success Criteria
 
-After any operation:
-- [ ] All files <200 lines? (@critical_rules.mvi_strict)
-- [ ] Function-based structure used? (@critical_rules.function_structure)
-- [ ] Approval UI shown for destructive ops? (@critical_rules.approval_gate)
-- [ ] Required context loaded? (@critical_rules.lazy_load)
-- [ ] navigation.md updated?
-- [ ] Files scannable in <30 seconds?
-
----
-
-## Full Documentation
-
-**Context System Location**: `.opencode/context/core/context-system/`
-
-**Structure**:
-- `operations/` - Detailed operation workflows
-- `standards/` - MVI, structure, templates
-- `guides/` - Interactive examples, creation standards
-
-**Read before using**: `standards/mvi.md` (understand Minimal Viable Information principle)
+- Target root was resolved before writing.
+- Core and target roots were resolved independently.
+- Project output is never written globally without `--global`.
+- Global core instructions remain unchanged by project operations.
+- Cleanup and overwrite actions were explicitly approved.
+- `navigation.md` was updated when context files changed.
